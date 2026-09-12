@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edu Era | Class 11</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+
+<body>
+
+<header class="navbar">
+  <div class="logo">📚 Edu Era</div>
+  <button id="adminBtn" class="outline">Admin</button>
+</header>
+
+<main>
+
+  <section class="hero">
+    <div class="eyebrow">CLASS 11 • PRIVATE STUDY PORTAL</div>
+    <h1>Learn smarter.<br>Revise faster.</h1>
+    <p>History • Psychology • Sociology</p>
+  </section>
+
+  <section>
+    <h2>Subjects</h2>
+    <div id="subjectCards" class="grid"></div>
+  </section>
+
+  <section class="panel">
+    <div class="section-head">
+      <div>
+        <h2>📖 Quick Revision Notes</h2>
+        <p>Easy Hinglish explanations</p>
+      </div>
+
+      <select id="subjectFilter">
+        <option value="">All Subjects</option>
+      </select>
+    </div>
+
+    <div id="notes" class="notes"></div>
+  </section>
+
+  <section class="panel">
+    <div class="section-head">
+      <div>
+        <h2>💡 Daily Doubt</h2>
+        <p>Latest doubts & explanations</p>
+      </div>
+    </div>
+
+    <div id="doubts"></div>
+  </section>
+
+  <section class="panel">
+    <div class="section-head">
+      <div>
+        <h2>🧠 Quiz</h2>
+        <p>NCERT-aligned practice</p>
+      </div>
+    </div>
+
+    <div id="quiz"></div>
+  </section>
+
+</main>
+
+<!-- ADMIN MODAL -->
+
+<div id="adminModal" class="modal hidden">
+
+  <div class="modal-card">
+
+    <button class="close" onclick="closeAdmin()">×</button>
+
+    <h2>🔐 Admin Panel</h2>
+
+    <p class="muted">
+      Manage Edu Era content from here.
+    </p>
+
+    <input
+      id="adminPass"
+      type="password"
+      placeholder="Admin password"
+    >
+
+    <button onclick="saveAdmin()">Unlock Admin</button>
+
+    <div id="adminArea" class="hidden">
+
+      <hr>
+
+      <h3>💡 Add Daily Doubt</h3>
+
+      <input id="doubtTitle" placeholder="Doubt title">
+
+      <textarea
+        id="doubtBody"
+        placeholder="Write doubt / explanation..."
+      ></textarea>
+
+      <button onclick="addDoubt()">Publish Doubt</button>
+
+      <hr>
+
+      <h3>🧠 Add Quiz Question</h3>
+
+      <select id="qSubject"></select>
+      <select id="qChapter"></select>
+
+      <input
+        id="qText"
+        placeholder="Question"
+      >
+
+      <input id="o0" placeholder="Option A">
+      <input id="o1" placeholder="Option B">
+      <input id="o2" placeholder="Option C">
+      <input id="o3" placeholder="Option D">
+
+      <input
+        id="qAnswer"
+        type="number"
+        min="0"
+        max="3"
+        placeholder="Correct option: 0-3"
+      >
+
+      <textarea
+        id="qExplanation"
+        placeholder="Easy Hinglish explanation"
+      ></textarea>
+
+      <button onclick="addQuiz()">Add Question</button>
+
+      <hr>
+
+      <h3>📄 Add Notes / PDF</h3>
+
+      <select id="nSubject"></select>
+      <select id="nChapter"></select>
+
+      <input
+        id="nTitle"
+        placeholder="Note title"
+      >
+
+      <textarea
+        id="nBody"
+        placeholder="Write easy Hinglish notes..."
+      ></textarea>
+
+      <input
+        id="nPdf"
+        type="file"
+        accept="application/pdf"
+      >
+
+      <button onclick="addNote()">Upload Note</button>
+
+    </div>
+
+  </div>
+
+</div>
+
+<script src="/app.js"></script>
+
+</body>
+</html>
