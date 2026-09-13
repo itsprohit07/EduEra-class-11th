@@ -4,10 +4,12 @@ const Database = require("better-sqlite3");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
+const path = require("path");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "change-me-now";
+fs.mkdirSync(path.join(__dirname, "data"), { recursive: true });
 
 const db = new Database(path.join(__dirname, "data", "study.db"));
 db.pragma("journal_mode = WAL");
