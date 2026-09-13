@@ -1,17 +1,19 @@
+const express = require('express');
+const multer = require('multer');
+const Database = require('better-sqlite3');
+const path = require('path');
+const fs = require('fs');
 
-const express = require("express");
-const Database = require("better-sqlite3");
-const multer = require("multer");
-const path = require("path");
-const fs = require("fs");
-cons
 const app = express();
 const PORT = process.env.PORT || 3000;
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "change-me-now";
-fs.mkdirSync(path.join(__dirname, "data"), { recursive: true });
 
-const db = new Database(path.join(__dirname, "data", "study.db"));
-db.pragma("journal_mode = WAL");
+// Database folder check & auto-create
+const dbDir = path.join(__dirname, 'data');
+if (!fs.existsSync(dbDir)) {
+    fs.mkdirSync(dbDir, { recursive: true });
+}
+
+const db = new Database(path.join(dbDir, 'stats.db'));
 
 db.exec(`
 CREATE TABLE IF NOT EXISTS quizzes (
