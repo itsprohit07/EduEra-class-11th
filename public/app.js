@@ -1,438 +1,254 @@
-const subjects = {
+const SUBJECTS = {
   History: [
     "Writing and City Life",
     "An Empire Across Three Continents",
     "Nomadic Empires",
-    "The Three Orders",
-    "Changing Cultural Traditions",
-    "Displacing Indigenous Peoples",
-    "Paths to Modernisation"
+    "Changing Cultural Traditions"
   ],
-
   Psychology: [
     "What is Psychology?",
     "Methods of Enquiry in Psychology",
     "Human Development",
-    "Sensory, Attentional and Perceptual Processes",
-    "Learning",
-    "Human Memory",
-    "Thinking",
-    "Motivation and Emotion"
+    "Sensory, Attentional and Perceptual Processes"
   ],
-
   Sociology: [
     "Sociology and Society",
-    "Terms, Concepts and their Use in Sociology",
+    "Terms, Concepts and their use in Sociology",
     "Understanding Social Institutions",
-    "Culture and Socialisation",
-    "Doing Sociology: Research Methods"
+    "Culture and Socialisation"
   ]
 };
 
-// Demo content — later we can expand every NCERT chapter.
-let notes = [
-  {
-    subject: "History",
-    chapter: "Writing and City Life",
-    title: "Urbanisation & Writing",
-    body: "Mesopotamia mein cities ka development hua. Writing ka use records, trade aur administration ke liye important tha."
-  },
-  {
-    subject: "Psychology",
-    chapter: "What is Psychology?",
-    title: "Psychology kya hai?",
-    body: "Psychology human behaviour aur mental processes ka scientific study hai. Isme thinking, emotions, learning aur behaviour ko samjha jata hai."
-  },
-  {
-    subject: "Sociology",
-    chapter: "Sociology and Society",
-    title: "Sociology ka meaning",
-    body: "Sociology society, social relationships aur social behaviour ka systematic study hai."
-  }
-];
+let allNotes = [];
+let allQuiz = [];
 
-let doubts = [
-  {
-    title: "Aaj ka Doubt",
-    body: "History mein civilisation aur empire mein kya difference hota hai?"
-  }
-];
-
-let quizzes = [
-  {
-    subject: "History",
-    chapter: "Writing and City Life",
-    question: "Writing ka early use kis purpose ke liye important tha?",
-    options: [
-      "Record keeping",
-      "Only entertainment",
-      "Only poetry",
-      "Sports"
-    ],
-    answer: 0,
-    explanation: "Early writing ka major use records, trade aur administration ko manage karne mein hota tha."
-  },
-  {
-    subject: "Psychology",
-    chapter: "What is Psychology?",
-    question: "Psychology mainly kis cheez ka scientific study hai?",
-    options: [
-      "Only physical health",
-      "Behaviour and mental processes",
-      "Only history",
-      "Only society"
-    ],
-    answer: 1,
-    explanation: "Psychology human behaviour aur mental processes ka scientific study hai."
-  },
-  {
-    subject: "Sociology",
-    chapter: "Sociology and Society",
-    question: "Sociology ka main focus kya hai?",
-    options: [
-      "Stars",
-      "Chemical reactions",
-      "Society and social relationships",
-      "Computer programming"
-    ],
-    answer: 2,
-    explanation: "Sociology society aur logon ke social relationships ko study karta hai."
-  }
-];
-
-const $ = id => document.getElementById(id);
-
-function saveData() {
-  localStorage.setItem("eduEraNotes", JSON.stringify(notes));
-  localStorage.setItem("eduEraDoubts", JSON.stringify(doubts));
-  localStorage.setItem("eduEraQuizzes", JSON.stringify(quizzes));
+// LocalStorage helpers for Tick Marks
+function getCompletedChapters() {
+  return JSON.parse(localStorage.getItem('completedChapters')) || [];
 }
 
-function loadData() {
-  try {
-    notes = JSON.parse(localStorage.getItem("eduEraNotes")) || notes;
-    doubts = JSON.parse(localStorage.getItem("eduEraDoubts")) || doubts;
-    quizzes = JSON.parse(localStorage.getItem("eduEraQuizzes")) || quizzes;
-  } catch (e) {
-    console.log("Data load error");
+function toggleComplete(chapter) {
+  let completed = getCompletedChapters();
+  if (completed.includes(chapter)) {
+    completed = completed.filter(c => c !== chapter);
+  } else {
+    completed.push(chapter);
   }
+  localStorage.setItem('completedChapters', JSON.stringify(completed));
+  renderSubjectCards();
+  renderNotes();
 }
 
-function renderSubjects() {
-  const container = $("subjectCards");
-  container.innerHTML = "";
+async function init() {
+  renderSubjectCards();
+  populateDropdowns();
+  await loadData();
+}
 
-  Object.entries(subjects).forEach(([subject, chapters]) => {
-    const card = document.createElement("div");
-    card.className = "subject";
+function renderSubjectCards() {
+  const container = document.getElementById('subjectCards');
+  if (!container) return;
+  const completed = getCompletedChapters();
 
-    card.innerHTML = `
-      <div style="font-size:32px">
-        ${subject === "History" ? "📜" : subject === "Psychology" ? "🧠" : "👥"}
-      </div>
+  container.innerHTML = Object.entries(SUBJECTS).map(([subject, chapters]) => `
+    <div class="card">
       <h3>${subject}</h3>
-      <p>${chapters.length} NCERT chapters</p>
-    `;
-
-    container.appendChild(card);
-  });
+      <ul>
+        ${chapters.map(ch => {
+          const isDone = completed.includes(ch);
+          return `
+            <li class="chapter-item ${isDone ? 'done' : ''}">
+              <span>${ch}</span>
+              <button class="tick-btn ${isDone ? 'active' : ''}" onclick="toggleComplete('${ch}')">
+                ${isDone ? '✅ Done' : '◯ Mark Done'}
+              </button>
+            </li>
+          `;
+        }).join('')}
+      </ul>
+    </div>
+  `).join('');
 }
 
-function fillSubjects() {
-  const filters = [
-    $("subjectFilter"),
-    $("qSubject"),
-    $("nSubject")
-  ];
+async function loadData() {
+  try {
+    const [notesRes, doubtsRes, quizRes] = await Promise.all([
+      fetch('/api/notes'),
+      fetch('/api/doubts'),
+      fetch('/api/quiz')
+    ]);
 
-  filters.forEach(select => {
-    if (!select) return;
+    allNotes = await notesRes.json();
+    renderNotes();
 
-    select.innerHTML = "";
+    const doubts = await doubtsRes.json();
+    renderDoubts(doubts);
 
-    Object.keys(subjects).forEach(subject => {
-      const option = document.createElement("option");
-      option.value = subject;
-      option.textContent = subject;
-      select.appendChild(option);
-    });
-  });
-
-  updateChapters("qSubject", "qChapter");
-  updateChapters("nSubject", "nChapter");
-}
-
-function updateChapters(subjectId, chapterId) {
-  const subject = $(subjectId);
-  const chapter = $(chapterId);
-
-  if (!subject || !chapter) return;
-
-  chapter.innerHTML = "";
-
-  (subjects[subject.value] || []).forEach(ch => {
-    const option = document.createElement("option");
-    option.value = ch;
-    option.textContent = ch;
-    chapter.appendChild(option);
-  });
+    allQuiz = await quizRes.json();
+    renderQuiz();
+  } catch (err) {
+    console.error('Error loading data:', err);
+  }
 }
 
 function renderNotes() {
-  const container = $("notes");
-  const filter = $("subjectFilter")?.value || "";
+  const container = document.getElementById('notes');
+  if (!container) return;
+  const filter = document.getElementById('subjectFilter')?.value || '';
+  const completed = getCompletedChapters();
 
-  const filtered = filter
-    ? notes.filter(n => n.subject === filter)
-    : notes;
+  const filtered = filter ? allNotes.filter(n => n.subject === filter) : allNotes;
 
-  if (!filtered.length) {
-    container.innerHTML = "<p>No notes available yet.</p>";
-    return;
-  }
-
-  container.innerHTML = filtered.map(note => `
-    <article class="note">
-      <span class="tag">${note.subject}</span>
-      <h3>${escapeHTML(note.title)}</h3>
-      <small>${escapeHTML(note.chapter)}</small>
-      <p>${escapeHTML(note.body)}</p>
-      ${
-        note.pdf
-          ? `<a href="${note.pdf}" target="_blank">📄 Open PDF</a>`
-          : ""
-      }
-    </article>
-  `).join("");
+  container.innerHTML = filtered.map(n => {
+    const isDone = completed.includes(n.chapter);
+    return `
+      <div class="note-card ${isDone ? 'note-done' : ''}">
+        <div class="note-header">
+          <span class="badge">${n.subject} • ${n.chapter}</span>
+          <button class="tick-btn ${isDone ? 'active' : ''}" onclick="toggleComplete('${n.chapter}')">
+            ${isDone ? '✅ Completed' : 'Mark as Done'}
+          </button>
+        </div>
+        <h4>${n.title}</h4>
+        <pre>${n.body}</pre>
+        ${n.pdf ? `<a href="${n.pdf}" target="_blank" class="pdf-link">📄 Open PDF</a>` : ''}
+      </div>
+    `;
+  }).join('');
 }
 
-function renderDoubts() {
-  const container = $("doubts");
-
+function renderDoubts(doubts) {
+  const container = document.getElementById('doubts');
+  if (!container) return;
   container.innerHTML = doubts.map(d => `
-    <div class="note">
-      <h3>💡 ${escapeHTML(d.title)}</h3>
-      <p>${escapeHTML(d.body)}</p>
+    <div class="doubt-card">
+      <h4>💡 ${d.title}</h4>
+      <p>${d.body}</p>
     </div>
-  `).join("");
+  `).join('');
 }
 
 function renderQuiz() {
-  const container = $("quiz");
-
-  if (!quizzes.length) {
-    container.innerHTML = "<p>No quiz available yet.</p>";
-    return;
-  }
-
-  container.innerHTML = quizzes.map((q, index) => `
-    <div class="question">
-      <span class="tag">${escapeHTML(q.subject)}</span>
-      <h3>Q${index + 1}. ${escapeHTML(q.question)}</h3>
-
-      <div id="options-${index}">
-        ${q.options.map((option, i) => `
-          <button
-            class="option"
-            onclick="checkAnswer(${index}, ${i})"
-          >
-            ${String.fromCharCode(65 + i)}. ${escapeHTML(option)}
+  const container = document.getElementById('quiz');
+  if (!container) return;
+  container.innerHTML = allQuiz.map((q, idx) => `
+    <div class="quiz-card">
+      <span class="badge">${q.subject} • ${q.chapter}</span>
+      <p class="quiz-q"><strong>Q${idx + 1}. ${q.question}</strong></p>
+      <div class="options">
+        ${q.options.map((opt, oIdx) => `
+          <button class="opt-btn" onclick="checkAnswer(this, ${oIdx}, ${q.answer}, '${q.explanation.replace(/'/g, "\\'")}')">
+            ${opt}
           </button>
-        `).join("")}
+        `).join('')}
       </div>
-
-      <div id="result-${index}"></div>
+      <div class="explanation hidden"></div>
     </div>
-  `).join("");
+  `).join('');
 }
 
-function checkAnswer(questionIndex, selected) {
-  const q = quizzes[questionIndex];
-  const result = $(`result-${questionIndex}`);
-  const buttons = document.querySelectorAll(
-    `#options-${questionIndex} .option`
-  );
+function checkAnswer(btn, selected, correct, explanation) {
+  const parent = btn.closest('.quiz-card');
+  const buttons = parent.querySelectorAll('.opt-btn');
+  const expBox = parent.querySelector('.explanation');
 
-  buttons.forEach((button, i) => {
-    button.disabled = true;
-
-    if (i === q.answer) {
-      button.classList.add("correct");
-    }
-
-    if (i === selected && selected !== q.answer) {
-      button.classList.add("wrong");
-    }
+  buttons.forEach((b, i) => {
+    b.disabled = true;
+    if (i === correct) b.classList.add('correct');
+    else if (i === selected) b.classList.add('wrong');
   });
 
-  if (selected === q.answer) {
-    result.innerHTML = `
-      <p><strong>✅ Correct!</strong></p>
-      <p>${escapeHTML(q.explanation)}</p>
-    `;
-  } else {
-    result.innerHTML = `
-      <p><strong>❌ Incorrect</strong></p>
-      <p>${escapeHTML(q.explanation)}</p>
-    `;
+  if (explanation) {
+    expBox.innerHTML = `<strong>💡 Hinglish Explanation:</strong> ${explanation}`;
+    expBox.classList.remove('hidden');
   }
 }
 
-function openAdmin() {
-  $("adminModal").classList.remove("hidden");
+function populateDropdowns() {
+  const subFilter = document.getElementById('subjectFilter');
+  if (subFilter) {
+    subFilter.innerHTML = '<option value="">All Subjects</option>' +
+      Object.keys(SUBJECTS).map(s => `<option value="${s}">${s}</option>`).join('');
+    subFilter.addEventListener('change', renderNotes);
+  }
+
+  ['qSubject', 'nSubject'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.innerHTML = Object.keys(SUBJECTS).map(s => `<option value="${s}">${s}</option>`).join('');
+    el.addEventListener('change', () => updateChapters(id, id === 'qSubject' ? 'qChapter' : 'nChapter'));
+  });
+
+  updateChapters('qSubject', 'qChapter');
+  updateChapters('nSubject', 'nChapter');
 }
 
-function closeAdmin() {
-  $("adminModal").classList.add("hidden");
+function updateChapters(subId, chapId) {
+  const sub = document.getElementById(subId)?.value;
+  const chapEl = document.getElementById(chapId);
+  if (!sub || !chapEl) return;
+  chapEl.innerHTML = SUBJECTS[sub].map(c => `<option value="${c}">${c}</option>`).join('');
 }
+
+// Admin Panel Code
+function openAdminModal() { document.getElementById('adminModal').classList.remove('hidden'); }
+function closeAdmin() { document.getElementById('adminModal').classList.add('hidden'); }
 
 function saveAdmin() {
-  // Temporary client-side password.
-  // Real authentication should be moved to the backend later.
-  const password = $("adminPass").value;
-
-  if (password === "EduEra@2026") {
-    $("adminArea").classList.remove("hidden");
-    $("adminPass").value = "";
+  const pass = document.getElementById('adminPass').value;
+  if (pass === 'EduEra@2026') {
+    document.getElementById('adminArea').classList.remove('hidden');
   } else {
-    alert("Wrong password");
+    alert('Incorrect Admin Password!');
   }
 }
 
-function addDoubt() {
-  const title = $("doubtTitle").value.trim();
-  const body = $("doubtBody").value.trim();
+async function addDoubt() {
+  const title = document.getElementById('doubtTitle').value;
+  const body = document.getElementById('doubtBody').value;
+  if (!title || !body) return alert('Fill all fields');
 
-  if (!title || !body) {
-    alert("Title aur doubt dono likho.");
-    return;
-  }
-
-  doubts.unshift({
-    title,
-    body
+  await fetch('/api/doubts', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title, body })
   });
-
-  saveData();
-  renderDoubts();
-
-  $("doubtTitle").value = "";
-  $("doubtBody").value = "";
-
-  alert("Daily doubt published! ✅");
+  location.reload();
 }
 
-function addQuiz() {
-  const subject = $("qSubject").value;
-  const chapter = $("qChapter").value;
-  const question = $("qText").value.trim();
-
+async function addQuiz() {
+  const subject = document.getElementById('qSubject').value;
+  const chapter = document.getElementById('qChapter').value;
+  const question = document.getElementById('qText').value;
   const options = [
-    $("o0").value.trim(),
-    $("o1").value.trim(),
-    $("o2").value.trim(),
-    $("o3").value.trim()
+    document.getElementById('a0').value,
+    document.getElementById('a1').value,
+    document.getElementById('a2').value,
+    document.getElementById('a3').value
   ];
+  const answer = parseInt(document.getElementById('qAnswer').value);
+  const explanation = document.getElementById('qExplanation').value;
 
-  const answer = Number($("qAnswer").value);
-  const explanation = $("qExplanation").value.trim();
-
-  if (
-    !question ||
-    options.some(x => !x) ||
-    answer < 0 ||
-    answer > 3
-  ) {
-    alert("Question, 4 options aur correct answer complete karo.");
-    return;
-  }
-
-  quizzes.push({
-    subject,
-    chapter,
-    question,
-    options,
-    answer,
-    explanation
+  await fetch('/api/quiz', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ subject, chapter, question, options, answer, explanation })
   });
-
-  saveData();
-  renderQuiz();
-
-  $("qText").value = "";
-  $("o0").value = "";
-  $("o1").value = "";
-  $("o2").value = "";
-  $("o3").value = "";
-  $("qAnswer").value = "";
-  $("qExplanation").value = "";
-
-  alert("Quiz question added! ✅");
+  location.reload();
 }
 
-function addNote() {
-  const subject = $("nSubject").value;
-  const chapter = $("nChapter").value;
-  const title = $("nTitle").value.trim();
-  const body = $("nBody").value.trim();
-  const pdf = $("nPdf").files[0];
+async function addNote() {
+  const subject = document.getElementById('nSubject').value;
+  const chapter = document.getElementById('nChapter').value;
+  const title = document.getElementById('nTitle').value;
+  const body = document.getElementById('nBody').value;
 
-  if (!title || !body) {
-    alert("Note title aur content likho.");
-    return;
-  }
-
-  // Browser localStorage cannot reliably store large PDFs.
-  // For now we save text notes.
-  notes.unshift({
-    subject,
-    chapter,
-    title,
-    body
+  await fetch('/api/notes', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ subject, chapter, title, body })
   });
-
-  saveData();
-  renderNotes();
-
-  $("nTitle").value = "";
-  $("nBody").value = "";
-  $("nPdf").value = "";
-
-  if (pdf) {
-    alert(
-      "Text note save ho gaya. PDF ke liye next step mein proper server upload system banayenge."
-    );
-  } else {
-    alert("Note added! ✅");
-  }
+  location.reload();
 }
 
-function escapeHTML(value) {
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
-// Events
-$("adminBtn")?.addEventListener("click", openAdmin);
-
-$("subjectFilter")?.addEventListener("change", renderNotes);
-
-$("qSubject")?.addEventListener("change", () => {
-  updateChapters("qSubject", "qChapter");
-});
-
-$("nSubject")?.addEventListener("change", () => {
-  updateChapters("nSubject", "nChapter");
-});
-
-// Start app
-loadData();
-renderSubjects();
-fillSubjects();
-renderNotes();
-renderDoubts();
-renderQuiz();
+document.addEventListener('DOMContentLoaded', init);
