@@ -22,7 +22,6 @@ const SUBJECTS = {
 let allNotes = [];
 let allQuiz = [];
 
-// LocalStorage helpers for Tick Marks
 function getCompletedChapters() {
   return JSON.parse(localStorage.getItem('completedChapters')) || [];
 }
@@ -105,9 +104,14 @@ function renderNotes() {
       <div class="note-card ${isDone ? 'note-done' : ''}">
         <div class="note-header">
           <span class="badge">${n.subject} • ${n.chapter}</span>
-          <button class="tick-btn ${isDone ? 'active' : ''}" onclick="toggleComplete('${n.chapter}')">
-            ${isDone ? '✅ Completed' : 'Mark as Done'}
-          </button>
+          <div>
+            <button class="tick-btn ${isDone ? 'active' : ''}" onclick="toggleComplete('${n.chapter}')">
+              ${isDone ? '✅ Completed' : 'Mark as Done'}
+            </button>
+            <button class="tick-btn" style="border-color: #ef4444; color: #ef4444; margin-left: 8px;" onclick="deleteNote(${n.id})">
+              🗑️ Delete
+            </button>
+          </div>
         </div>
         <h4>${n.title}</h4>
         <pre>${n.body}</pre>
@@ -115,6 +119,13 @@ function renderNotes() {
       </div>
     `;
   }).join('');
+}
+
+async function deleteNote(id) {
+  if (confirm('Kya aap is note ko delete karna chahte hain?')) {
+    await fetch(`/api/notes/${id}`, { method: 'DELETE' });
+    await loadData();
+  }
 }
 
 function renderDoubts(doubts) {
@@ -190,7 +201,6 @@ function updateChapters(subId, chapId) {
   chapEl.innerHTML = SUBJECTS[sub].map(c => `<option value="${c}">${c}</option>`).join('');
 }
 
-// Admin Panel Code
 function openAdminModal() { document.getElementById('adminModal').classList.remove('hidden'); }
 function closeAdmin() { document.getElementById('adminModal').classList.add('hidden'); }
 
