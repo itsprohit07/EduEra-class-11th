@@ -112,14 +112,7 @@ app.post('/api/doubts', (req, res) => {
 app.post('/api/quiz', (req, res) => {
   const { subject, chapter, question, options, answer, explanation } = req.body;
   const info = db.prepare('INSERT INTO quiz (subject, chapter, question, options, answer, explanation) VALUES (?, ?, ?, ?, ?, ?)').run(
-    subject, chapter, question, JSON.stringify(options), answer, explanation || ''
-  );
-  res.json({ id: info.lastInsertRowid });
-});
-
-app.post('/api/notes', (req, res) => {
-  const { subject, chapter, title, body, pdf } = req.body;
-  const info = db.prepare('INSERT INTO notes (subject, chapter, title, body, pdf) VALUES (?, ?, ?, ?, ?)').run(
+    subject, chapter, question, JSON.stringi db.prepare('INSERT INTO notes (subject, chapter, title, body, pdf) VALUES (?, ?, ?, ?, ?)').run(
     subject, chapter, title, body, pdf || ''
   );
   res.json({ id: info.lastInsertRowid });
@@ -129,5 +122,3 @@ app.delete('/api/notes/:id', (req, res) => {
   db.prepare('DELETE FROM notes WHERE id = ?').run(id);
   res.json({ success: true, message: 'Note deleted successfully' });
 });
-
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
