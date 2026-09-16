@@ -124,5 +124,10 @@ app.post('/api/notes', (req, res) => {
   );
   res.json({ id: info.lastInsertRowid });
 });
+app.delete('/api/notes/:id', (req, res) => {
+  const { id } = req.params;
+  db.prepare('DELETE FROM notes WHERE id = ?').run(id);
+  res.json({ success: true, message: 'Note deleted successfully' });
+});
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
