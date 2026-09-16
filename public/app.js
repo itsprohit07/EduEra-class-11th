@@ -79,6 +79,7 @@ async function loadData() {
 
     allNotes = await notesRes.json();
     renderNotes();
+    renderAdminNotesList(); // Admin view list
 
     const doubts = await doubtsRes.json();
     renderDoubts(doubts);
@@ -90,6 +91,7 @@ async function loadData() {
   }
 }
 
+// Student View: Sirf Notes aur Mark Done button (NO DELETE BUTTON)
 function renderNotes() {
   const container = document.getElementById('notes');
   if (!container) return;
@@ -104,14 +106,9 @@ function renderNotes() {
       <div class="note-card ${isDone ? 'note-done' : ''}">
         <div class="note-header">
           <span class="badge">${n.subject} • ${n.chapter}</span>
-          <div>
-            <button class="tick-btn ${isDone ? 'active' : ''}" onclick="toggleComplete('${n.chapter}')">
-              ${isDone ? '✅ Completed' : 'Mark as Done'}
-            </button>
-            <button class="tick-btn" style="border-color: #ef4444; color: #ef4444; margin-left: 8px;" onclick="deleteNote(${n.id})">
-              🗑️ Delete
-            </button>
-          </div>
+          <button class="tick-btn ${isDone ? 'active' : ''}" onclick="toggleComplete('${n.chapter}')">
+            ${isDone ? '✅ Completed' : 'Mark as Done'}
+          </button>
         </div>
         <h4>${n.title}</h4>
         <pre>${n.body}</pre>
@@ -121,6 +118,35 @@ function renderNotes() {
   }).join('');
 }
 
+// Admin View: Admin panel ke andar Delete karne ka option
+function renderAdminNotesList() {
+  const container = document.getElementById('adminNotesList');
+  if (!container) return;
+
+  if (allNotes.length === 0) {
+    container.innerHTML = '<p>No notes found.</p>';
+    return;
+  }
+
+  container.innerHTML = `
+    <h4>Manage / Delete Existing Notes</h4>
+    <div style="max-height: 250px; overflow-y: auto; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px;">
+      ${allNotes.map(n => `
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+          <div>
+            <strong>[${n.subject}] ${n.title}</strong>
+            <div style="font-size: 0.8em; opacity: 0.7;">${n.chapter}</div>
+          </div>
+          <button class="tick-btn" style="border-color: #ef4444; color: #ef4444;" onclick="deleteNote(${n.id})">
+            🗑️ Delete
+          </button>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+// Sirf Admin dwara trigger hoga
 async function deleteNote(id) {
   if (confirm('Kya aap is note ko delete karna chahte hain?')) {
     await fetch(`/api/notes/${id}`, { method: 'DELETE' });
@@ -208,6 +234,7 @@ function saveAdmin() {
   const pass = document.getElementById('adminPass').value;
   if (pass === 'EduEra@2026') {
     document.getElementById('adminArea').classList.remove('hidden');
+    renderAdminNotesList();
   } else {
     alert('Incorrect Admin Password!');
   }
