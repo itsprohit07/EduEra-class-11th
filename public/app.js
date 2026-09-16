@@ -79,7 +79,7 @@ async function loadData() {
 
     allNotes = await notesRes.json();
     renderNotes();
-    renderAdminNotesList(); // Admin view list
+    renderAdminNotesList();
 
     const doubts = await doubtsRes.json();
     renderDoubts(doubts);
@@ -91,7 +91,15 @@ async function loadData() {
   }
 }
 
-// Student View: Sirf Notes aur Mark Done button (NO DELETE BUTTON)
+// Format PDF link to open in Google Drive viewer or new tab properly
+function formatPdfUrl(url) {
+  if (!url) return '';
+  if (url.includes('drive.google.com') && url.includes('/view')) {
+    return url;
+  }
+  return url.startsWith('http') ? url : `https://${url}`;
+}
+
 function renderNotes() {
   const container = document.getElementById('notes');
   if (!container) return;
@@ -102,6 +110,7 @@ function renderNotes() {
 
   container.innerHTML = filtered.map(n => {
     const isDone = completed.includes(n.chapter);
+    const pdfUrl = formatPdfUrl(n.pdf);
     return `
       <div class="note-card ${isDone ? 'note-done' : ''}">
         <div class="note-header">
@@ -112,25 +121,28 @@ function renderNotes() {
         </div>
         <h4>${n.title}</h4>
         <pre>${n.body}</pre>
-        ${n.pdf ? `<a href="${n.pdf}" target="_blank" class="pdf-link">📄 Open PDF</a>` : ''}
+        ${pdfUrl ? `
+          <a href="${pdfUrl}" target="_blank" rel="noopener noreferrer" 
+             style="display:inline-block; margin-top:10px; padding:8px 14px; background:#3b82f6; color:#ffffff; border-radius:6px; text-decoration:none; font-weight:bold;">
+            📄 Open / View PDF
+          </a>` : ''}
       </div>
     `;
   }).join('');
 }
 
-// Admin View: Admin panel ke andar Delete karne ka option
 function renderAdminNotesList() {
   const container = document.getElementById('adminNotesList');
   if (!container) return;
 
   if (allNotes.length === 0) {
-    container.innerHTML = '<p>No notes found.</p>';
+    container.innerHTML = '<p style="color:#aaa;">No uploaded notes currently.</p>';
     return;
   }
 
   container.innerHTML = `
-    <h4>Manage / Delete Existing Notes</h4>
-    <div style="max-height: 250px; overflow-y: auto; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px;">
+    <h4>🗑️ Manage & Delete Uploaded Notes</h4>
+    <div style="max-height: 200px; overflow-y: auto; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px;">
       ${allNotes.map(n => `
         <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.1);">
           <div>
@@ -146,11 +158,20 @@ function renderAdminNotesList() {
   `;
 }
 
-// Sirf Admin dwara trigger hoga
 async function deleteNote(id) {
-  if (confirm('Kya aap is note ko delete karna chahte hain?')) {
-    await fetch(`/api/notes/${id}`, { method: 'DELETE' });
-    await loadData();
+  const pass = document.getElementById('adminPass').value;
+  if (confirm('Are you sure you want to delete this note?')) {
+    const res = await fetch(`/api/notes/${id}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ adminPass: pass })
+    });
+    if (res.ok) {
+      alert('Note deleted successfully!');
+      await loadData();
+    } else {
+      alert('Error: Incorrect Admin Password!');
+    }
   }
 }
 
@@ -196,7 +217,7 @@ function checkAnswer(btn, selected, correct, explanation) {
   });
 
   if (explanation) {
-    expBox.innerHTML = `<strong>💡 Hinglish Explanation:</strong> ${explanation}`;
+    expBox.innerHTML = `<strong>💡 Explanation:</strong> ${explanation}`;
     expBox.classList.remove('hidden');
   }
 }
@@ -241,19 +262,26 @@ function saveAdmin() {
 }
 
 async function addDoubt() {
+  const pass = document.getElementById('adminPass').value;
   const title = document.getElementById('doubtTitle').value;
   const body = document.getElementById('doubtBody').value;
   if (!title || !body) return alert('Fill all fields');
 
-  await fetch('/api/doubts', {
+  const res = await fetch('/api/doubts', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ title, body })
+    body: JSON.stringify({ title, body, adminPass: pass })
   });
-  location.reload();
+
+  if (res.ok) {
+    location.reload();
+  } else {
+    alert('Failed to add. Incorrect Admin Password!');
+  }
 }
 
 async function addQuiz() {
+  const pass = document.getElementById('adminPass').value;
   const subject = document.getElementById('qSubject').value;
   const chapter = document.getElementById('qChapter').value;
   const question = document.getElementById('qText').value;
@@ -266,26 +294,38 @@ async function addQuiz() {
   const answer = parseInt(document.getElementById('qAnswer').value);
   const explanation = document.getElementById('qExplanation').value;
 
-  await fetch('/api/quiz', {
+  const res = await fetch('/api/quiz', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ subject, chapter, question, options, answer, explanation })
+    body: JSON.stringify({ subject, chapter, question, options, answer, explanation, adminPass: pass })
   });
-  location.reload();
+
+  if (res.ok) {
+    location.reload();
+  } else {
+    alert('Failed to add. Incorrect Admin Password!');
+  }
 }
 
 async function addNote() {
+  const pass = document.getElementById('adminPass').value;
   const subject = document.getElementById('nSubject').value;
   const chapter = document.getElementById('nChapter').value;
   const title = document.getElementById('nTitle').value;
   const body = document.getElementById('nBody').value;
+  const pdf = document.getElementById('nPdf').value;
 
-  await fetch('/api/notes', {
+  const res = await fetch('/api/notes', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ subject, chapter, title, body })
+    body: JSON.stringify({ subject, chapter, title, body, pdf, adminPass: pass })
   });
-  location.reload();
+
+  if (res.ok) {
+    location.reload();
+  } else {
+    alert('Failed to upload note. Incorrect Admin Password!');
+  }
 }
 
 document.addEventListener('DOMContentLoaded', init);
