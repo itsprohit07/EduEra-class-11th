@@ -1,32 +1,97 @@
+// COMPLETE CLASS 11 HUMANITIES SYLLABUS
 const SUBJECTS = {
   History: [
     "Writing and City Life",
     "An Empire Across Three Continents",
     "Nomadic Empires",
-    "Changing Cultural Traditions"
+    "Changing Cultural Traditions",
+    "Displacing Indigenous Peoples",
+    "Paths to Modernisation"
+  ],
+  "Political Science": [
+    "Constitution: Why and How?",
+    "Rights in the Indian Constitution",
+    "Election and Representation",
+    "Executive",
+    "Legislature",
+    "Judiciary",
+    "Federalism",
+    "Local Governments",
+    "Political Theory: An Introduction",
+    "Freedom",
+    "Equality",
+    "Social Justice",
+    "Rights",
+    "Citizenship",
+    "Nationalism",
+    "Secularism"
+  ],
+  Geography: [
+    "Geography as a Discipline",
+    "The Origin and Evolution of the Earth",
+    "Interior of the Earth",
+    "Oceans and Continents",
+    "Landforms and their Evolution",
+    "Composition and Structure of Atmosphere",
+    "Solar Radiation, Heat Balance and Temperature",
+    "Water in the Atmosphere",
+    "World Climate and Climate Change",
+    "Water (Oceans)",
+    "Movements of Ocean Water",
+    "India - Location",
+    "Structure and Physiography",
+    "Drainage System",
+    "Climate",
+    "Natural Vegetation"
+  ],
+  Sociology: [
+    "Sociology and Society",
+    "Terms, Concepts and Their Use in Sociology",
+    "Understanding Social Institutions",
+    "Culture and Socialisation",
+    "Doing Sociology: Research Methods",
+    "Social Structure, Stratification and Social Processes",
+    "Social Change and Social Order in Rural and Urban Society",
+    "Environment and Society",
+    "Introducing Western Sociologists",
+    "Indian Sociologists"
   ],
   Psychology: [
     "What is Psychology?",
     "Methods of Enquiry in Psychology",
     "Human Development",
-    "Sensory, Attentional and Perceptual Processes"
+    "Sensory, Attentional and Perceptual Processes",
+    "Learning",
+    "Human Memory",
+    "Thinking",
+    "Motivation and Emotion"
   ],
-  Sociology: [
-    "Sociology and Society",
-    "Terms, Concepts and their use in Sociology",
-    "Understanding Social Institutions",
-    "Culture and Socialisation"
+  Economics: [
+    "Concept of Economics and Significance of Statistics in Economics",
+    "Collection of Data",
+    "Organisation of Data",
+    "Presentation of Data",
+    "Measures of Central Tendency",
+    "Correlation",
+    "Index Numbers",
+    "Introduction to Microeconomics",
+    "Consumer's Equilibrium",
+    "Demand and Price Elasticity of Demand",
+    "Producer Behaviour and Supply",
+    "Forms of Market and Price Determination"
   ]
 };
 
 let allNotes = [];
 let allQuiz = [];
+let allDoubts = [];
 
 function getCompletedChapters() {
   return JSON.parse(localStorage.getItem('completedChapters')) || [];
 }
 
-function toggleComplete(chapter) {
+function toggleComplete(e, chapter) {
+  e.stopPropagation();
   let completed = getCompletedChapters();
   if (completed.includes(chapter)) {
     completed = completed.filter(c => c !== chapter);
@@ -34,33 +99,36 @@ function toggleComplete(chapter) {
     completed.push(chapter);
   }
   localStorage.setItem('completedChapters', JSON.stringify(completed));
-  renderSubjectCards();
-  renderNotes();
+  renderDashboard();
 }
 
 async function init() {
-  renderSubjectCards();
+  renderDashboard();
   populateDropdowns();
   await loadData();
 }
 
-function renderSubjectCards() {
+// MAIN PAGE DIRECTORY VIEW
+function renderDashboard() {
   const container = document.getElementById('subjectCards');
   if (!container) return;
   const completed = getCompletedChapters();
 
   container.innerHTML = Object.entries(SUBJECTS).map(([subject, chapters]) => `
-    <div class="card">
-      <h3>${subject}</h3>
-      <ul>
+    <div class="subject-card">
+      <h3>📖 ${subject}</h3>
+      <ul class="chapter-list">
         ${chapters.map(ch => {
           const isDone = completed.includes(ch);
           return `
-            <li class="chapter-item ${isDone ? 'done' : ''}">
-              <span>${ch}</span>
-              <button class="tick-btn ${isDone ? 'active' : ''}" onclick="toggleComplete('${ch}')">
-                ${isDone ? '✅ Done' : '◯ Mark Done'}
-              </button>
+            <li class="chapter-item" onclick="openChapterDetails('${subject}', '${ch}')">
+              <span class="chapter-title">${ch}</span>
+              <div class="chapter-actions">
+                <button class="btn-open">View Page ➔</button>
+                <button class="btn-check ${isDone ? 'active' : ''}" onclick="toggleComplete(event, '${ch}')">
+                  ${isDone ? '✅' : '◯'}
+                </button>
+              </div>
             </li>
           `;
         }).join('')}
@@ -78,167 +146,105 @@ async function loadData() {
     ]);
 
     allNotes = await notesRes.json();
-    renderNotes();
-    renderAdminNotesList();
-
-    const doubts = await doubtsRes.json();
-    renderDoubts(doubts);
-
+    allDoubts = await doubtsRes.json();
     allQuiz = await quizRes.json();
-    renderQuiz();
+
+    renderAdminNotesList();
   } catch (err) {
-    console.error('Error loading data:', err);
+    console.error('Error loading API data:', err);
   }
 }
 
-// Format PDF link to open in Google Drive viewer or new tab properly
-function formatPdfUrl(url) {
-  if (!url) return '';
-  if (url.includes('drive.google.com') && url.includes('/view')) {
-    return url;
-  }
-  return url.startsWith('http') ? url : `https://${url}`;
-}
+// OPEN DEDICATED CHAPTER PAGE WITH SMOOTH ANIMATION
+function openChapterDetails(subject, chapter) {
+  const modal = document.getElementById('chapterModal');
+  
+  document.getElementById('chapterModalTitle').innerText = chapter;
+  document.getElementById('chapterModalSub').innerText = `${subject} • Chapter Details`;
 
-function renderNotes() {
-  const container = document.getElementById('notes');
-  if (!container) return;
-  const filter = document.getElementById('subjectFilter')?.value || '';
-  const completed = getCompletedChapters();
-
-  const filtered = filter ? allNotes.filter(n => n.subject === filter) : allNotes;
-
-  container.innerHTML = filtered.map(n => {
-    const isDone = completed.includes(n.chapter);
-    const pdfUrl = formatPdfUrl(n.pdf);
-    return `
-      <div class="note-card ${isDone ? 'note-done' : ''}">
-        <div class="note-header">
-          <span class="badge">${n.subject} • ${n.chapter}</span>
-          <button class="tick-btn ${isDone ? 'active' : ''}" onclick="toggleComplete('${n.chapter}')">
-            ${isDone ? '✅ Completed' : 'Mark as Done'}
-          </button>
+  // Filter Notes
+  const cNotes = allNotes.filter(n => n.subject === subject && n.chapter === chapter);
+  const notesBox = document.getElementById('chapterNotesContainer');
+  notesBox.innerHTML = cNotes.length === 0
+    ? '<p style="color:#94a3b8; font-size:0.9rem;">No notes uploaded yet for this chapter.</p>'
+    : cNotes.map(n => `
+        <div style="background:var(--bg-primary); padding:14px; border-radius:10px; margin-bottom:12px; border:1px solid var(--bg-accent);">
+          <h4 style="color:#f8fafc; margin-bottom:6px;">${n.title}</h4>
+          <pre>${n.body}</pre>
+          ${n.pdf ? `<a href="${n.pdf}" target="_blank" style="display:inline-block; margin-top:8px; padding:6px 12px; background:#3b82f6; color:#fff; border-radius:6px; text-decoration:none; font-weight:600; font-size:0.85rem;">📄 Open / View PDF</a>` : ''}
         </div>
-        <h4>${n.title}</h4>
-        <pre>${n.body}</pre>
-        ${pdfUrl ? `
-          <a href="${pdfUrl}" target="_blank" rel="noopener noreferrer" 
-             style="display:inline-block; margin-top:10px; padding:8px 14px; background:#3b82f6; color:#ffffff; border-radius:6px; text-decoration:none; font-weight:bold;">
-            📄 Open / View PDF
-          </a>` : ''}
-      </div>
-    `;
-  }).join('');
-}
+      `).join('');
 
-function renderAdminNotesList() {
-  const container = document.getElementById('adminNotesList');
-  if (!container) return;
-
-  if (allNotes.length === 0) {
-    container.innerHTML = '<p style="color:#aaa;">No uploaded notes currently.</p>';
-    return;
-  }
-
-  container.innerHTML = `
-    <h4>🗑️ Manage & Delete Uploaded Notes</h4>
-    <div style="max-height: 200px; overflow-y: auto; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px;">
-      ${allNotes.map(n => `
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.1);">
-          <div>
-            <strong>[${n.subject}] ${n.title}</strong>
-            <div style="font-size: 0.8em; opacity: 0.7;">${n.chapter}</div>
+  // Filter Quiz
+  const cQuiz = allQuiz.filter(q => q.subject === subject && q.chapter === chapter);
+  const quizBox = document.getElementById('chapterQuizContainer');
+  quizBox.innerHTML = cQuiz.length === 0
+    ? '<p style="color:#94a3b8; font-size:0.9rem;">No quiz added for this chapter yet.</p>'
+    : cQuiz.map((q, idx) => `
+        <div style="background:var(--bg-primary); padding:14px; border-radius:10px; margin-bottom:12px; border:1px solid var(--bg-accent);">
+          <p><strong>Q${idx + 1}. ${q.question}</strong></p>
+          <div style="display:grid; gap:8px; margin-top:10px;">
+            ${q.options.map((opt, oIdx) => `
+              <button class="btn-check" style="text-align:left; padding:10px; border-radius:8px;" onclick="checkAnswer(this, ${oIdx}, ${q.answer}, '${q.explanation.replace(/'/g, "\\'")}')">
+                ${opt}
+              </button>
+            `).join('')}
           </div>
-          <button class="tick-btn" style="border-color: #ef4444; color: #ef4444;" onclick="deleteNote(${n.id})">
-            🗑️ Delete
-          </button>
+          <div class="explanation hidden" style="margin-top:10px; font-size:0.85rem; color:#60a5fa;"></div>
         </div>
-      `).join('')}
-    </div>
-  `;
+      `).join('');
+
+  // Filter Doubts
+  const cDoubts = allDoubts.filter(d => d.subject === subject && d.chapter === chapter);
+  const doubtsBox = document.getElementById('chapterDoubtsContainer');
+  doubtsBox.innerHTML = cDoubts.length === 0
+    ? '<p style="color:#94a3b8; font-size:0.9rem;">No doubts/solutions added yet for this chapter.</p>'
+    : cDoubts.map(d => `
+        <div style="background:var(--bg-primary); padding:14px; border-radius:10px; margin-bottom:12px; border:1px solid var(--bg-accent);">
+          <h5 style="color:#f8fafc;">💡 ${d.title}</h5>
+          <p style="color:#94a3b8; font-size:0.9rem; margin-top:4px;">${d.body}</p>
+        </div>
+      `).join('');
+
+  modal.classList.remove('hidden');
+  modal.querySelector('.modal-content').scrollTop = 0;
 }
 
-async function deleteNote(id) {
-  const pass = document.getElementById('adminPass').value;
-  if (confirm('Are you sure you want to delete this note?')) {
-    const res = await fetch(`/api/notes/${id}`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ adminPass: pass })
-    });
-    if (res.ok) {
-      alert('Note deleted successfully!');
-      await loadData();
-    } else {
-      alert('Error: Incorrect Admin Password!');
-    }
-  }
-}
-
-function renderDoubts(doubts) {
-  const container = document.getElementById('doubts');
-  if (!container) return;
-  container.innerHTML = doubts.map(d => `
-    <div class="doubt-card">
-      <h4>💡 ${d.title}</h4>
-      <p>${d.body}</p>
-    </div>
-  `).join('');
-}
-
-function renderQuiz() {
-  const container = document.getElementById('quiz');
-  if (!container) return;
-  container.innerHTML = allQuiz.map((q, idx) => `
-    <div class="quiz-card">
-      <span class="badge">${q.subject} • ${q.chapter}</span>
-      <p class="quiz-q"><strong>Q${idx + 1}. ${q.question}</strong></p>
-      <div class="options">
-        ${q.options.map((opt, oIdx) => `
-          <button class="opt-btn" onclick="checkAnswer(this, ${oIdx}, ${q.answer}, '${q.explanation.replace(/'/g, "\\'")}')">
-            ${opt}
-          </button>
-        `).join('')}
-      </div>
-      <div class="explanation hidden"></div>
-    </div>
-  `).join('');
+function closeChapterModal() {
+  document.getElementById('chapterModal').classList.add('hidden');
 }
 
 function checkAnswer(btn, selected, correct, explanation) {
-  const parent = btn.closest('.quiz-card');
-  const buttons = parent.querySelectorAll('.opt-btn');
-  const expBox = parent.querySelector('.explanation');
+  const parent = btn.parentElement;
+  const buttons = parent.querySelectorAll('button');
+  const expBox = parent.nextElementSibling;
 
   buttons.forEach((b, i) => {
     b.disabled = true;
-    if (i === correct) b.classList.add('correct');
-    else if (i === selected) b.classList.add('wrong');
+    if (i === correct) b.style.background = '#10b981';
+    else if (i === selected) b.style.background = '#ef4444';
   });
 
-  if (explanation) {
-    expBox.innerHTML = `<strong>💡 Explanation:</strong> ${explanation}`;
+  if (explanation && expBox) {
+    expBox.innerHTML = `<strong>Explanation:</strong> ${explanation}`;
     expBox.classList.remove('hidden');
   }
 }
 
 function populateDropdowns() {
-  const subFilter = document.getElementById('subjectFilter');
-  if (subFilter) {
-    subFilter.innerHTML = '<option value="">All Subjects</option>' +
-      Object.keys(SUBJECTS).map(s => `<option value="${s}">${s}</option>`).join('');
-    subFilter.addEventListener('change', renderNotes);
-  }
-
-  ['qSubject', 'nSubject'].forEach(id => {
+  ['qSubject', 'nSubject', 'dSubject'].forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
     el.innerHTML = Object.keys(SUBJECTS).map(s => `<option value="${s}">${s}</option>`).join('');
-    el.addEventListener('change', () => updateChapters(id, id === 'qSubject' ? 'qChapter' : 'nChapter'));
+    el.addEventListener('change', () => {
+      const chapId = id === 'qSubject' ? 'qChapter' : (id === 'nSubject' ? 'nChapter' : 'dChapter');
+      updateChapters(id, chapId);
+    });
   });
 
   updateChapters('qSubject', 'qChapter');
   updateChapters('nSubject', 'nChapter');
+  updateChapters('dSubject', 'dChapter');
 }
 
 function updateChapters(subId, chapId) {
@@ -261,22 +267,25 @@ function saveAdmin() {
   }
 }
 
-async function addDoubt() {
+async function addNote() {
   const pass = document.getElementById('adminPass').value;
-  const title = document.getElementById('doubtTitle').value;
-  const body = document.getElementById('doubtBody').value;
-  if (!title || !body) return alert('Fill all fields');
+  const subject = document.getElementById('nSubject').value;
+  const chapter = document.getElementById('nChapter').value;
+  const title = document.getElementById('nTitle').value;
+  const body = document.getElementById('nBody').value;
+  const pdf = document.getElementById('nPdf').value;
 
-  const res = await fetch('/api/doubts', {
+  const res = await fetch('/api/notes', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ title, body, adminPass: pass })
+    body: JSON.stringify({ subject, chapter, title, body, pdf, adminPass: pass })
   });
 
   if (res.ok) {
+    alert('Note uploaded successfully!');
     location.reload();
   } else {
-    alert('Failed to add. Incorrect Admin Password!');
+    alert('Error uploading note.');
   }
 }
 
@@ -301,31 +310,34 @@ async function addQuiz() {
   });
 
   if (res.ok) {
+    alert('Quiz added successfully!');
     location.reload();
-  } else {
-    alert('Failed to add. Incorrect Admin Password!');
   }
 }
 
-async function addNote() {
+async function addDoubt() {
   const pass = document.getElementById('adminPass').value;
-  const subject = document.getElementById('nSubject').value;
-  const chapter = document.getElementById('nChapter').value;
-  const title = document.getElementById('nTitle').value;
-  const body = document.getElementById('nBody').value;
-  const pdf = document.getElementById('nPdf').value;
+  const subject = document.getElementById('dSubject').value;
+  const chapter = document.getElementById('dChapter').value;
+  const title = document.getElementById('doubtTitle').value;
+  const body = document.getElementById('doubtBody').value;
 
-  const res = await fetch('/api/notes', {
+  const res = await fetch('/api/doubts', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ subject, chapter, title, body, pdf, adminPass: pass })
+    body: JSON.stringify({ subject, chapter, title, body, adminPass: pass })
   });
 
   if (res.ok) {
+    alert('Doubt added successfully!');
     location.reload();
-  } else {
-    alert('Failed to upload note. Incorrect Admin Password!');
   }
+}
+
+function renderAdminNotesList() {
+  const container = document.getElementById('adminNotesList');
+  if (!container) return;
+  container.innerHTML = `<h4>Uploaded Items Count: ${allNotes.length} Notes</h4>`;
 }
 
 document.addEventListener('DOMContentLoaded', init);
